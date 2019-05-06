@@ -3,16 +3,31 @@ import matplotlib.pylab as plt
 import numpy as np
 qk.IBMQ.load_accounts()
 
+E_max = 500
 
 def H0(n_simulation,control_qubit,delta,dt):
 	for p in range(2,n_simulation):
 		qz.crz(2*dt*(p-1),qb[control_qubit],qb[p-1+n_work])
+
+	qz.cu1(E_max*dt,qb[control_qubit],qb[n_work])
+	qz.x(qb[n_work])
+	qz.cu1(E_max*dt,qb[control_qubit],qb[n_work])
+	qz.x(qb[n_work])
+
+	qz.cu1(-dt*delta*0.5*(n_simulation-1)*n_simulation,qb[control_qubit],qb[n_work])
+	qz.x(qb[n_work])
+	qz.cu1(-dt*delta*0.5*(n_simulation-1)*n_simulation,qb[control_qubit],qb[n_work])
+	qz.x(qb[n_work])
 
 def H1(n_simulation,control_qubit,g,dt):
 	for p in range(1,n_simulation,2):
 		for q in range(p,n_simulation,2):
 			if p == q:
 				theta = 2*(1/8)*g*dt
+				qz.cu1(-theta/2,qb[control_qubit],qb[n_work])
+				qz.x(qb[n_work])
+				qz.cu1(-theta/2,qb[control_qubit],qb[n_work])
+				qz.x(qb[n_work])
 				qz.crz(theta,qb[control_qubit],qb[p-1+n_work])
 				qz.crz(theta,qb[control_qubit],qb[p+n_work])
 				qz.cx(qb[p],qb[n_qubits-1])
@@ -210,28 +225,66 @@ def H1(n_simulation,control_qubit,g,dt):
 				qz.rz(-np.pi/2,qb[q+n_work])
 
 
+def inverse_fourier():
+	for qc in range(int(n_work/2)):
+		qz.swap(qb[qc],qb[n_work-qc-1])
+	for cq in range(n_work):
+		for i in range(cq):
+			qz.cu1(-2*np.pi/(2**(1+cq-i)),qb[i],qb[cq])
+		qz.h(qb[cq])
 
-n_work = 8
-n_simulation = 4
+n_work = 4
+n_simulation = 2
 n_qubits = n_work + n_simulation + 1
 
 
 qb = qk.QuantumRegister(n_qubits)
 c = qk.ClassicalRegister(n_qubits)
 qz = qk.QuantumCircuit(qb,c)
-for i in range(n_work):
-	qz.h(qb[i])
+delta = 1
+g = 1
+dt = 2*np.pi/450
+t = 10
+steps = int(t/dt)
 
 for i in range(n_simulation):
-	qz.h(qb[i+n_work])
+	qz.x(qb[n_work+i])
 
-H0(n_simulation,0,1,0.1)
-H1(n_simulation,0,1,0.1)
+for cq in range(n_work):
+	qz.h(qb[cq])
+for cq in range(n_work):
+	for i in range(2**cq):
+		for j in range(steps):
+			H0(n_simulation,cq,delta,dt)
+			H1(n_simulation,cq,g,dt)
+
+inverse_fourier()
 
 qz.measure(qb,c)
 
-job = qk.execute(qz, backend = qk.Aer.get_backend('qasm_simulator'), shots=10000)
+shots = 1000
+job = qk.execute(qz, backend = qk.Aer.get_backend('qasm_simulator'), shots=shots)
 result = job.result()
 
-# Print the result
-print(result.get_counts(qz))
+result = result.get_counts(qz)
+res_decimal = {}
+res_energy = {}
+for key,value in result.items():
+	key = key[0:4]
+	decimal = 0
+	for i,bit in enumerate(key):
+		decimal += int(bit)*2**(-1-i)
+	if value != 0:
+		res_decimal[str(decimal)] = 0
+		res_energy[str(-(decimal*2**n_work)*2*np.pi/((2**n_work)*dt))] = 0
+for key,value in result.items():
+	key = key[0:4]
+	decimal = 0
+	for i,bit in enumerate(key):
+		decimal += int(bit)*2**(-1-i)
+	if value != 0:
+		res_decimal[str(decimal)] += value
+		res_energy[str(-(decimal*2**n_work)*2*np.pi/((2**n_work)*dt))] += value
+
+print(res_decimal)
+print(res_energy)

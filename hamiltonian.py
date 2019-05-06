@@ -44,9 +44,10 @@ def stateMatrix(n_pairs,n_basis):
 
 file = open('hamil.txt','r')
 
-g = 0.5
+g = 1
+delta = 1
 
-H = hamiltonian(4,8,1,g)
+H = hamiltonian(1,200,delta,g)
 A = H
 n = H.shape[0]
 np.savetxt('hamil.txt',H.flatten())
@@ -61,6 +62,7 @@ x[0] = 1
 
 
 def f(t,x):
+	"""
 	Ax = np.zeros(n)
 	i = -1
 	k = 0
@@ -72,7 +74,8 @@ def f(t,x):
 		Ax[i] += elem*x[k]
 		k+=1
 	file.seek(0)
-	return(-(x.T@x)*Ax + (x.T@Ax)*x)
+	"""
+	return(-(x.T@x)*A@x + (x.T@A@x)*x)
 
 
 
