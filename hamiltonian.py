@@ -44,10 +44,10 @@ def stateMatrix(n_pairs,n_basis):
 
 file = open('hamil.txt','r')
 
-g = 1
+g = 0.5
 delta = 1
 
-H = hamiltonian(1,200,delta,g)
+H = hamiltonian(1,500,delta,g)
 A = H
 n = H.shape[0]
 np.savetxt('hamil.txt',H.flatten())

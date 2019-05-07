@@ -2,9 +2,7 @@ import qiskit as qk
 import matplotlib.pylab as plt
 import numpy as np
 qk.IBMQ.load_accounts()
-
-E_max = 500
-
+E_max = 1e16
 def H0(n_simulation,control_qubit,delta,dt):
 	for p in range(2,n_simulation):
 		qz.crz(2*dt*(p-1),qb[control_qubit],qb[p-1+n_work])
@@ -28,11 +26,13 @@ def H1(n_simulation,control_qubit,g,dt):
 				qz.x(qb[n_work])
 				qz.cu1(-theta/2,qb[control_qubit],qb[n_work])
 				qz.x(qb[n_work])
+
 				qz.crz(theta,qb[control_qubit],qb[p-1+n_work])
 				qz.crz(theta,qb[control_qubit],qb[p+n_work])
+				
 				qz.cx(qb[p],qb[n_qubits-1])
 				qz.cx(qb[p-1],qb[n_qubits-1])
-				qz.crz(theta,qb[control_qubit],qb[n_qubits-1])
+				qz.crz(-theta,qb[control_qubit],qb[n_qubits-1])
 				qz.cx(qb[p],qb[n_qubits-1])
 				qz.cx(qb[p-1],qb[n_qubits-1])
 			else:
@@ -228,6 +228,7 @@ def H1(n_simulation,control_qubit,g,dt):
 def inverse_fourier():
 	for qc in range(int(n_work/2)):
 		qz.swap(qb[qc],qb[n_work-qc-1])
+	
 	for cq in range(n_work):
 		for i in range(cq):
 			qz.cu1(-2*np.pi/(2**(1+cq-i)),qb[i],qb[cq])
@@ -242,9 +243,9 @@ qb = qk.QuantumRegister(n_qubits)
 c = qk.ClassicalRegister(n_qubits)
 qz = qk.QuantumCircuit(qb,c)
 delta = 1
-g = 1
-dt = 2*np.pi/450
-t = 10
+g = 0.001
+dt = 2*np.pi/(E_max + 100)
+t = dt
 steps = int(t/dt)
 
 for i in range(n_simulation):
@@ -253,10 +254,9 @@ for i in range(n_simulation):
 for cq in range(n_work):
 	qz.h(qb[cq])
 for cq in range(n_work):
-	for i in range(2**cq):
-		for j in range(steps):
-			H0(n_simulation,cq,delta,dt)
-			H1(n_simulation,cq,g,dt)
+	for j in range(steps):
+		H0(n_simulation,cq,delta,(2**cq)*dt)
+		H1(n_simulation,cq,g,(2**cq)*dt)
 
 inverse_fourier()
 
@@ -270,21 +270,23 @@ result = result.get_counts(qz)
 res_decimal = {}
 res_energy = {}
 for key,value in result.items():
-	key = key[0:4]
+	key = key[0:n_work]
 	decimal = 0
 	for i,bit in enumerate(key):
-		decimal += int(bit)*2**(-1-i)
+		decimal += int(bit)*2**(-i-1)
 	if value != 0:
 		res_decimal[str(decimal)] = 0
-		res_energy[str(-(decimal*2**n_work)*2*np.pi/((2**n_work)*dt))] = 0
+		res_energy[str(-decimal*2*np.pi/dt)] = 0
 for key,value in result.items():
-	key = key[0:4]
+	key = key[0:n_work]
 	decimal = 0
 	for i,bit in enumerate(key):
 		decimal += int(bit)*2**(-1-i)
 	if value != 0:
 		res_decimal[str(decimal)] += value
-		res_energy[str(-(decimal*2**n_work)*2*np.pi/((2**n_work)*dt))] += value
+		res_energy[str(-decimal*2*np.pi/dt)] += value
 
 print(res_decimal)
 print(res_energy)
+
+
