@@ -32,13 +32,15 @@ class QCPairing:
 		qb = self.qb
 		cb = self.cb
 		qz = self.qz
+		s_state = -1
+		for q_state in range(0,n_simulation):
+			if q_state % 2 == 0:
+				s_state += 1
+			qz.crz(2*dt*delta*(s_state - 1),qb[control_qubit],qb[q_state+n_work])
 
-		for p in range(1,n_simulation):
-			qz.crz(2*dt*delta*p,qb[control_qubit],qb[p+n_work])
-
-		qz.cu1(-dt*delta*0.5*(n_simulation-1)*n_simulation,qb[control_qubit],qb[n_work])
+		qz.cu1(-dt*delta*(1/8)*(n_simulation-2)*n_simulation,qb[control_qubit],qb[n_work])
 		qz.x(qb[n_work])
-		qz.cu1(-dt*delta*0.5*(n_simulation-1)*n_simulation,qb[control_qubit],qb[n_work])
+		qz.cu1(-dt*delta*(1/8)*(n_simulation-2)*n_simulation,qb[control_qubit],qb[n_work])
 		qz.x(qb[n_work])
 
 		qz.cu1(Emax*dt,qb[control_qubit],qb[n_work])
@@ -323,11 +325,11 @@ class QCPairing:
 n_work = 4
 n_simulation = 2
 n_qubits = n_work + n_simulation + 1
-Emax=100
+Emax=2
 dt = 2*np.pi/(100)
-g = 0.5
+g = 1
 delta=1
-t= 5
+t= dt
 Pairing1 = QCPairing(n_work,n_simulation,delta=delta,g=g,dt=dt,Emax=Emax)
 qz,qb,cb= Pairing1.solve(t)
 
