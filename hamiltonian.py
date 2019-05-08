@@ -29,7 +29,7 @@ def hamiltonian(n_pairs,n_basis,delta,g):
 				H_mat[row,col] += 2*delta*np.sum(bra - 1) - 0.5*g*n_pairs
 			if n_pairs - np.intersect1d(bra,ket).shape[0] == 1:
 				H_mat[row,col] += -0.5*g
-	return(H_mat)
+	return(H_mat,H_mat[0,0])
 
 
 def stateMatrix(n_pairs,n_basis):
@@ -47,7 +47,7 @@ file = open('hamil.txt','r')
 g = 0.5
 delta = 1
 
-H = hamiltonian(1,500,delta,g)
+H,E_ref = hamiltonian(1,500,delta,g)
 A = H
 n = H.shape[0]
 np.savetxt('hamil.txt',H.flatten())
@@ -99,5 +99,6 @@ file.close()
 start = time.time()
 eigvals, eigvecs = np.linalg.eig(H)
 end = time.time()
-print("numpy eig: ",np.sort(eigvals))
+print("numpy eig: ",np.sort(eigvals) + E_ref)
 print("calculation time with numpy eig: ", end - start)
+print('E_ref = ',E_ref)
