@@ -334,13 +334,9 @@ class QCPairing:
 		return(self.qz,self.qb,self.cb)
 
 
-#numpy eig:  [-0.61803399  1.61803399] 12
-#numpy eig:  [1.] 22
-"""
-numpy eig:  [-0.7053034   1.55266233  3.65264107] 13
-numpy eig:  [0.7946966  3.05266233 5.15264107] 23
-numpy eig:  [4.5] 33
-"""
+#numpy eig:  [-0.61803399  1.61803399] 1pair-4basis eigenvaslues with diagonalization
+#numpy eig:  [1.] 					   2pair-4basis 	-----||------
+
 
 
 n_work = 8
