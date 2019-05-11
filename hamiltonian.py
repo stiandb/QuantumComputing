@@ -44,10 +44,10 @@ def stateMatrix(n_pairs,n_basis):
 
 file = open('hamil.txt','r')
 
-g = 0.5
+g = 1
 delta = 1
 
-H,E_ref = hamiltonian(1,500,delta,g)
+H,E_ref = hamiltonian(1,2,delta,g)
 A = H
 n = H.shape[0]
 np.savetxt('hamil.txt',H.flatten())
@@ -91,14 +91,15 @@ end = time.time()
 
 
 
-print("RNN eig: ",r.y.T@A@r.y/(r.y.T@r.y))
-print("calculation time with RNN: ", end - start)
+#print("RNN eig: ",r.y.T@A@r.y/(r.y.T@r.y))
+#print("calculation time with RNN: ", end - start)
 
 file.close()
 
 start = time.time()
 eigvals, eigvecs = np.linalg.eig(H)
 end = time.time()
-print("numpy eig: ",np.sort(eigvals) + E_ref)
+print("numpy eig: ",np.sort(eigvals))
+print("numpy eig + E_ref: ",np.sort(eigvals) + E_ref)
 print("calculation time with numpy eig: ", end - start)
 print('E_ref = ',E_ref)

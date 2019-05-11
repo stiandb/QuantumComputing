@@ -8,12 +8,13 @@ class QCPairing:
 		self.n_work = n_work
 		self.n_simulation = n_simulation
 		self.n_qubits = n_work + n_simulation + 1
-		self.qb = qk.QuantumRegister(n_qubits)
-		self.cb = qk.ClassicalRegister(n_qubits)
+		self.qb = qk.QuantumRegister(self.n_qubits)
+		self.cb = qk.ClassicalRegister(self.n_qubits)
 		self.qz = qk.QuantumCircuit(self.qb,self.cb)
 		self.delta = delta
 		self.g = g
 		self.dt = dt
+		self.Emax = Emax
 	def set_dt(self,dt):
 		self.dt = dt
 	def set_Emax(self,Emax):
@@ -29,14 +30,15 @@ class QCPairing:
 		n_work = self.n_work
 		n_simulation=self.n_simulation
 		n_qubits=self.n_qubits
+		Emax=self.Emax
 		qb = self.qb
 		cb = self.cb
 		qz = self.qz
-		s_state = -1
+		s_state = 0
 		for q_state in range(0,n_simulation):
 			if q_state % 2 == 0:
 				s_state += 1
-			qz.crz(2*dt*delta*(s_state - 1),qb[control_qubit],qb[q_state+n_work])
+			qz.crz(dt*delta*(s_state - 1),qb[control_qubit],qb[q_state+n_work])
 
 		qz.cu1(-dt*delta*(1/8)*(n_simulation-2)*n_simulation,qb[control_qubit],qb[n_work])
 		qz.x(qb[n_work])
@@ -281,14 +283,25 @@ class QCPairing:
 		qb = self.qb
 		cb = self.cb
 		qz = self.qz
-		for i in range(n_simulation):
-			qz.x(qb[n_work+i])
+
+		#Initialize simulation qubits to superposition of bell states
+
+		for i in range(0,n_simulation,2):
+			qz.h(qb[n_work+i])
+			qz.cx(qb[n_work+i],qb[n_work+i+1])
+		
+
+
+
 		for cq in range(n_work):
 			qz.h(qb[cq])
+
+
 		for cq in range(n_work):
 			for j in range(int(t/dt)):
 				self.H0((2**cq)*dt,cq)
 				self.H1((2**cq)*dt,cq)
+
 		self.qb = qb
 		self.cb = cb
 		self.qz = qz
@@ -321,22 +334,21 @@ class QCPairing:
 		return(self.qz,self.qb,self.cb)
 
 
-
-n_work = 4
-n_simulation = 2
-n_qubits = n_work + n_simulation + 1
-Emax=2
-dt = 2*np.pi/(100)
+#[-1.11803399  1.11803399]
+n_work = 8
+n_simulation = 4
+Emax=5
+dt = 0.001
 g = 1
 delta=1
-t= dt
+t= 100*dt
 Pairing1 = QCPairing(n_work,n_simulation,delta=delta,g=g,dt=dt,Emax=Emax)
 qz,qb,cb= Pairing1.solve(t)
 
 
 
-for i in range(n_work):
-	qz.measure(qb[i],cb[i])
+
+qz.measure(qb,cb)
 
 
 shots = 1000
@@ -347,8 +359,7 @@ result = result.get_counts(qz)
 res_decimal = {}
 res_energy = {}
 for key,value in result.items():
-	key = key
-	key = key[::-1]
+	key = key[n_simulation+1:]
 	decimal = 0
 	for i,bit in enumerate(key):
 		decimal += int(bit)*2**(-i-1)
@@ -356,8 +367,7 @@ for key,value in result.items():
 		res_decimal[decimal] = 0
 		res_energy[Emax-decimal*2*np.pi/t] = 0
 for key,value in result.items():
-	key = key
-	key = key[::-1]
+	key = key[n_simulation+1:]
 	decimal = 0
 	for i,bit in enumerate(key):
 		decimal += int(bit)*2**(-1-i)
@@ -372,19 +382,8 @@ lists = sorted(res_energy.items()) # sorted by key, return a list of tuples
 
 x, y = zip(*lists)
 
-plt.plot(x,y,'.')
+plt.plot(x,y)
 plt.xlabel('Eigenvalue')
 plt.ylabel('Times measured')
 plt.show()
-
-"""
-{0.375: 1, 0.6875: 43, 0.5: 11, 0.25: 14, 0.1875: 14, 0.0: 36,
- 0.9375: 457, 0.8125: 10, 0.3125: 11, 0.5625: 5, 0.0625: 6,
-  0.875: 4, 0.125: 1, 0.75: 7, 0.625: 5, 0.4375: 375}
-
- {0.5625: 1, 0.6875: 2, 0.1875: 9, 0.4375: 1, 0.3125: 2, 0.8125: 985}
-
- {0.0625: 7, 0.625: 6, 0.5625: 3, 0.25: 6, 0.3125: 6, 0.8125: 9, 0.1875: 24, 0.6875: 49, 0.125: 8, 
- 0.375: 4, 0.4375: 510, 0.9375: 305, 0.875: 5, 0.75: 3, 0.5: 16, 0.0: 39}
-"""
 
