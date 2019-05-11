@@ -77,9 +77,9 @@ class QCPairing:
 					
 					qz.cx(qb[p+n_work],qb[n_qubits-1])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
-					qz.crz(-theta,qb[control_qubit],qb[n_qubits-1])
-					qz.cx(qb[p+n_work],qb[n_qubits-1])
+					qz.crz(theta,qb[control_qubit],qb[n_qubits-1])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
+					qz.cx(qb[p+n_work],qb[n_qubits-1])
 				else:
 					theta = -2*(1/16)*g*dt
 					#FIRST TERM:
@@ -300,7 +300,7 @@ class QCPairing:
 		for cq in range(n_work):
 			for j in range(int(t/dt)):
 				self.H0((2**cq)*dt,cq)
-				#self.H1((2**cq)*dt,cq)
+				self.H1((2**cq)*dt,cq)
 
 		self.qb = qb
 		self.cb = cb
@@ -326,19 +326,27 @@ class QCPairing:
 		self.cb = cb
 		self.qz = qz
 
-	def solve(self,t=0):
-		if t == 0:
+	def solve(self,t=None):
+		if t == None:
 			t = self.dt
 		self.PhaseEstimation(t)
 		self.inverse_Fourier()
 		return(self.qz,self.qb,self.cb)
 
 
-#[-1.11803399  1.11803399]
+#numpy eig:  [-0.61803399  1.61803399] 12
+#numpy eig:  [1.] 22
+"""
+numpy eig:  [-0.7053034   1.55266233  3.65264107] 13
+numpy eig:  [0.7946966  3.05266233 5.15264107] 23
+numpy eig:  [4.5] 33
+"""
+
+
 n_work = 8
 n_simulation = 4
-Emax=5
-dt = 0.001
+Emax= 2
+dt = 0.005
 g = 1
 delta=1
 t= 100*dt
@@ -358,25 +366,34 @@ result = job.result()
 result = result.get_counts(qz)
 res_decimal = {}
 res_energy = {}
+res_eigenstate = {}
 for key,value in result.items():
 	key = key[n_simulation+1:]
+	eigenstate = key[1:n_simulation+1]
+	eigenstate = eigenstate[::-1]
 	decimal = 0
 	for i,bit in enumerate(key):
 		decimal += int(bit)*2**(-i-1)
 	if value != 0:
 		res_decimal[decimal] = 0
 		res_energy[Emax-decimal*2*np.pi/t] = 0
+		res_eigenstate[eigenstate] = 0
 for key,value in result.items():
 	key = key[n_simulation+1:]
+	eigenstate = key[1:n_simulation+1]
+	eigenstate = eigenstate[::-1]
 	decimal = 0
 	for i,bit in enumerate(key):
 		decimal += int(bit)*2**(-1-i)
 	if value != 0:
 		res_decimal[decimal] += value
 		res_energy[Emax-decimal*2*np.pi/t] += value
+		res_eigenstate[eigenstate] += value
 
-print(res_decimal)
+
+
 print(res_energy)
+
 
 lists = sorted(res_energy.items()) # sorted by key, return a list of tuples
 

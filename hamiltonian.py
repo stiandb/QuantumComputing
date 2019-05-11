@@ -47,7 +47,7 @@ file = open('hamil.txt','r')
 g = 1
 delta = 1
 
-H,E_ref = hamiltonian(1,2,delta,g)
+H,E_ref = hamiltonian(3,3,delta,g)
 A = H
 n = H.shape[0]
 np.savetxt('hamil.txt',H.flatten())
