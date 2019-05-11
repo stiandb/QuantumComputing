@@ -300,7 +300,7 @@ class QCPairing:
 		for cq in range(n_work):
 			for j in range(int(t/dt)):
 				self.H0((2**cq)*dt,cq)
-				self.H1((2**cq)*dt,cq)
+				#self.H1((2**cq)*dt,cq)
 
 		self.qb = qb
 		self.cb = cb
