@@ -334,8 +334,11 @@ class QCPairing:
 		return(self.qz,self.qb,self.cb)
 
 
+
+
 #numpy eig:  [-0.61803399  1.61803399] 1pair-4basis eigenvaslues with diagonalization
 #numpy eig:  [1.] 					   2pair-4basis 	-----||------
+#The algorithm should be able to find these eigenvalues n_simulation=4
 
 
 
