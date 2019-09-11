@@ -18,7 +18,6 @@ def hamiltonian(n_pairs,n_basis,delta,g):
 	n_basis - Number of spacial basis states
 	"""
 	n_SD = int(special.binom(n_basis,n_pairs))
-	print("n = ", n_SD)
 	H_mat = np.zeros((n_SD,n_SD))
 	S = stateMatrix(n_pairs,n_basis)
 	for row in range(n_SD):
@@ -42,64 +41,5 @@ def stateMatrix(n_pairs,n_basis):
 	L = unique_rows(L)
 	return(L)
 
-file = open('hamil.txt','r')
-
-g = 1
-delta = 1
-
-H,E_ref = hamiltonian(3,3,delta,g)
-A = H
-n = H.shape[0]
-np.savetxt('hamil.txt',H.flatten())
-file = open('hamil.txt','r')
-Ax = np.zeros(n)
-x = np.zeros(n)
-x[0] = 1
-
-	
 
 
-
-
-def f(t,x):
-	"""
-	Ax = np.zeros(n)
-	i = -1
-	k = 0
-	for j in range(n*n):
-		if j % n == 0:
-			i += 1
-			k = 0
-		elem = float(file.readline())
-		Ax[i] += elem*x[k]
-		k+=1
-	file.seek(0)
-	"""
-	return(-(x.T@x)*A@x + (x.T@A@x)*x)
-
-
-
-r = ode(f)
-r.set_initial_value(x,0) #langsos algorithm
-
-t1=10
-dt=0.1
-start = time.time()
-while r.successful() and r.t < t1:
-	r.integrate(r.t+dt)
-end = time.time()
-
-
-
-#print("RNN eig: ",r.y.T@A@r.y/(r.y.T@r.y))
-#print("calculation time with RNN: ", end - start)
-
-file.close()
-
-start = time.time()
-eigvals, eigvecs = np.linalg.eig(H)
-end = time.time()
-print("numpy eig: ",np.sort(eigvals))
-print("numpy eig + E_ref: ",np.sort(eigvals) + E_ref)
-print("calculation time with numpy eig: ", end - start)
-print('E_ref = ',E_ref)

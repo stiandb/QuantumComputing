@@ -1,10 +1,24 @@
 import qiskit as qk
-import matplotlib.pylab as plt
 import numpy as np
+import matplotlib.pylab as plt
 qk.IBMQ.load_accounts()
 
 class QCPairing:
-	def __init__(self,n_work,n_simulation,delta=1,g=1,dt=0.001,Emax=500):
+	"""
+	Class to implement the pairing hamiltonian and estimate its eigenvalues.
+	"""
+	def __init__(self,n_work,n_simulation,delta=1,g=1,dt=0.005,Emax=500):
+		"""
+		Input:
+			input:
+				n_work (int) - Number of work-qubits
+				n_simulation (int) - Number of simulation qubits
+				delta (float) - parameter in the one-body hamiltonian
+				g (float) - parameter in the two-body hamiltonian
+				dt (float) - timestep in the phase estimation algorithm
+				Emax (float) - subtracted from the hamiltonian to yield the whole eigenvalue sprectrum.
+
+		"""
 		self.n_work = n_work
 		self.n_simulation = n_simulation
 		self.n_qubits = n_work + n_simulation + 1
@@ -25,6 +39,12 @@ class QCPairing:
 		self.g = g
 	
 	def H0(self,dt,control_qubit):
+		"""
+		Implements the one-body part of the parining hamiltonian
+		Input:
+			dt (float) - timestep in the Phase estimation algorithm
+			control_qubit (int) - The conditional qubit
+		"""
 		g = self.g
 		delta=self.delta
 		n_work = self.n_work
@@ -55,6 +75,12 @@ class QCPairing:
 		self.qz = qz
 
 	def H1(self,dt,control_qubit):
+		"""
+		Implements the two-body part of the pairing hamiltonian
+		Input:
+			dt (float) - timestep in the Phase estimation algorithm
+			control_qubit (int) - The conditional qubit
+		"""
 		g = self.g
 		delta=self.delta
 		n_work = self.n_work
@@ -221,9 +247,7 @@ class QCPairing:
 					qz.h(qb[p-1+n_work])
 					qz.rz(np.pi/2,qb[p+n_work])
 					qz.h(qb[p+n_work])
-					
 					qz.h(qb[q-1+n_work])
-					
 					qz.h(qb[q+n_work])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[p+n_work],qb[n_qubits-1])
@@ -274,6 +298,11 @@ class QCPairing:
 
 
 	def PhaseEstimation(self,t):
+		"""
+		Phase estimation algorithm
+		t (float) - how long to apply the hamiltonian on the simulation qubits (t/dt iterations)
+		"""
+		self.t = t
 		dt = self.dt
 		g = self.g
 		delta=self.delta
@@ -290,12 +319,8 @@ class QCPairing:
 			qz.h(qb[n_work+i])
 			qz.cx(qb[n_work+i],qb[n_work+i+1])
 		
-
-
-
 		for cq in range(n_work):
 			qz.h(qb[cq])
-
 
 		for cq in range(n_work):
 			for j in range(int(t/dt)):
@@ -307,6 +332,9 @@ class QCPairing:
 		self.qz = qz
 
 	def inverse_Fourier(self):
+		"""
+		Inverse Quantum Fourier algorithm
+		"""
 		dt = self.dt
 		g = self.g
 		delta=self.delta
@@ -327,79 +355,105 @@ class QCPairing:
 		self.qz = qz
 
 	def solve(self,t=None):
+		"""
+		Call this method to implement and output the qiskit circuit
+		input:
+			t (float) - time the hamiltonian acts on the system. (t/dt iterations) t = dt if not set.
+
+		output:
+			qz - qiskit circuit
+			qb - qiskit quantum bits
+			cb - qiskit classical bits
+		"""
 		if t == None:
 			t = self.dt
 		self.PhaseEstimation(t)
 		self.inverse_Fourier()
 		return(self.qz,self.qb,self.cb)
 
+	def run_simulation(self,t = None, shots = 1000):
+		"""
+		Runs the simulation shots times and returns
+		Input:
+			t (float) - time hamiltonian is applied to the quantum system (t/dt iterations)
+			shots (int) - number of times to run the simulation
+		Output:
+			measurements (array) - array containing energy, state and times measured
+		"""
+
+		qz,qb,cb = self.solve(t)
+		self.qz.measure(self.qb,self.cb)
+		job = qk.execute(self.qz, backend = qk.Aer.get_backend('qasm_simulator'), shots=shots)
+		result = job.result()
+		result = result.get_counts(self.qz)
+		measurements = []
+		for key,value in result.items():
+			key_ = key[self.n_simulation+1:]
+			eigenstate = key[1:(self.n_simulation+1)]
+			eigenstate = eigenstate[::-1]
+			decimal = 0
+			for i,bit in enumerate(key_):
+				decimal += int(bit)*2**(-i-1)
+			if value != 0:
+				measurements.append(np.array([eigenstate, self.Emax-decimal*2*np.pi/self.t, value]))
+		
+		measurements = np.array(measurements)
+		return(measurements)
 
 
+	def statEig(self,measurements,min_measure=15):
+		"""
+		Finds the estimated eigenvalue and variance by averaging the peaks found with run_simulation
+		input:
+			measurements (array) - output from run_simulation
+			min_measure (int) - Minimum measurements of state before it is considered
+			for eigenvalue estimation.
+		output:
+			eigenvalues (list) - Estimated eigenvalues
+			varEigs (list) - Estimated variance of eigenvalue approximation
+		"""
 
-#numpy eig:  [-0.61803399  1.61803399] 1pair-4basis eigenvaslues with diagonalization
-#numpy eig:  [1.] 					   2pair-4basis 	-----||------
-#The algorithm should be able to find these eigenvalues n_simulation=4
+		sumxiyi = 0
+		sumyi = 0
+		xi_list = []
+		eigenvalues = []
+		varEigs = []
+		minMeasBool = False
+		x = measurements[:,1].astype(np.float)
+		idx = np.argsort(x)
+		y = measurements[:,2].astype(np.int)
+		x = x[idx]
+		y = y[idx]
+		energy_dict = {}
 
+		for xi,yi in zip(x,y):
+			energy_dict[xi] = 0
+		for xi,yi in zip(x,y):
+			energy_dict[xi] += yi
 
+		x = np.array(list(energy_dict.keys()))
+		y = np.array(list(energy_dict.values()))
+		idx = np.argsort(x)
+		x = x[idx]
+		y = y[idx]
 
-n_work = 8
-n_simulation = 4
-Emax= 2
-dt = 0.005
-g = 1
-delta=1
-t= 100*dt
-Pairing1 = QCPairing(n_work,n_simulation,delta=delta,g=g,dt=dt,Emax=Emax)
-qz,qb,cb= Pairing1.solve(t)
-
-
-
-
-qz.measure(qb,cb)
-
-
-shots = 1000
-job = qk.execute(qz, backend = qk.Aer.get_backend('qasm_simulator'), shots=shots)
-result = job.result()
-
-result = result.get_counts(qz)
-res_decimal = {}
-res_energy = {}
-res_eigenstate = {}
-for key,value in result.items():
-	key = key[n_simulation+1:]
-	eigenstate = key[1:n_simulation+1]
-	eigenstate = eigenstate[::-1]
-	decimal = 0
-	for i,bit in enumerate(key):
-		decimal += int(bit)*2**(-i-1)
-	if value != 0:
-		res_decimal[decimal] = 0
-		res_energy[Emax-decimal*2*np.pi/t] = 0
-		res_eigenstate[eigenstate] = 0
-for key,value in result.items():
-	key = key[n_simulation+1:]
-	eigenstate = key[1:n_simulation+1]
-	eigenstate = eigenstate[::-1]
-	decimal = 0
-	for i,bit in enumerate(key):
-		decimal += int(bit)*2**(-1-i)
-	if value != 0:
-		res_decimal[decimal] += value
-		res_energy[Emax-decimal*2*np.pi/t] += value
-		res_eigenstate[eigenstate] += value
-
-
-
-print(res_energy)
-
-
-lists = sorted(res_energy.items()) # sorted by key, return a list of tuples
-
-x, y = zip(*lists)
-
-plt.plot(x,y)
-plt.xlabel('Eigenvalue')
-plt.ylabel('Times measured')
-plt.show()
+		for xi, yi in zip(x,y):
+			if yi >= min_measure:
+				minMeasBool = True
+				sumxiyi += xi*yi
+				sumyi += yi
+				xi_list.append(xi)
+			if minMeasBool and yi < min_measure:
+				minMeasBool = False
+				mu = sumxiyi/sumyi
+				eigenvalues.append(mu)
+				sumxiyi=0
+				sumyi = 0
+				var = 0
+				for val in xi_list:
+					var += (val - mu)**2
+				var/= len(xi_list)
+				varEigs.append(var)
+				xi_list = []
+		return(eigenvalues,varEigs)
 
