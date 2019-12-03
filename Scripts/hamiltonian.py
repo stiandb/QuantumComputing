@@ -12,10 +12,28 @@ def unique_rows(a):
     unique_a = np.unique(a.view([('', a.dtype)]*a.shape[1]))
     return unique_a.view(a.dtype).reshape((unique_a.shape[0], a.shape[1]))
 
+def stateMatrix(n_pairs,n_basis):
+	L = []
+	states = range(1,n_basis+1)
+	for perm in it.permutations(states,n_pairs):
+		L.append(perm)
+	L = np.array(L)
+	L.sort(axis=1)
+	L = unique_rows(L)
+	return(L)
+
 def hamiltonian(n_pairs,n_basis,delta,g):
 	"""
-	n_pairs - Number of electron pairs
-	n_basis - Number of spacial basis states
+	Produces FCI matrix for pairing hamiltonian
+	Inputs:
+		n_pairs (int) - Number of electron pairs
+		n_basis (int) - Number of spacial basis states (spin-orbitals / 2)
+		delta (float) - one-body strength
+		g (float) - interaction strength
+
+	Outputs:
+		H_mat (array) - FCI matrix for pairing hamiltonian
+		H_mat[0,0] (float) - Reference energy
 	"""
 	n_SD = int(special.binom(n_basis,n_pairs))
 	H_mat = np.zeros((n_SD,n_SD))
@@ -31,15 +49,12 @@ def hamiltonian(n_pairs,n_basis,delta,g):
 	return(H_mat,H_mat[0,0])
 
 
-def stateMatrix(n_pairs,n_basis):
-	L = []
-	states = range(1,n_basis+1)
-	for perm in it.permutations(states,n_pairs):
-		L.append(perm)
-	L = np.array(L)
-	L.sort(axis=1)
-	L = unique_rows(L)
-	return(L)
+
+
+
+
+
+
 
 
 

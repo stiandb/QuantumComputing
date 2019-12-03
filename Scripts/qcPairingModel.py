@@ -1,13 +1,13 @@
 import qiskit as qk
 import numpy as np
 import matplotlib.pylab as plt
-qk.IBMQ.load_accounts()
+
 
 class QCPairing:
 	"""
 	Class to implement the pairing hamiltonian and estimate its eigenvalues.
 	"""
-	def __init__(self,n_work,n_simulation,delta=1,g=1,dt=0.005,Emax=500):
+	def __init__(self,n_work,n_simulation,delta=1,g=1,dt=0.005,Emax=500,noise_model=None):
 		"""
 		Input:
 			input:
@@ -19,6 +19,7 @@ class QCPairing:
 				Emax (float) - subtracted from the hamiltonian to yield the whole eigenvalue sprectrum.
 
 		"""
+		self.noise_model=noise_model
 		self.n_work = n_work
 		self.n_simulation = n_simulation
 		self.n_qubits = n_work + n_simulation + 1
@@ -130,9 +131,9 @@ class QCPairing:
 					#SECOND TERM:
 					qz.h(qb[p-1+n_work])
 					qz.h(qb[p+n_work])
-					qz.rz(np.pi/2,qb[q-1+n_work])
+					qz.rz(-np.pi/2,qb[q-1+n_work])
 					qz.h(qb[q-1+n_work])
-					qz.rz(np.pi/2,qb[q+n_work])
+					qz.rz(-np.pi/2,qb[q+n_work])
 					qz.h(qb[q+n_work])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[p+n_work],qb[n_qubits-1])
@@ -146,16 +147,16 @@ class QCPairing:
 					qz.h(qb[p-1+n_work])
 					qz.h(qb[p+n_work])
 					qz.h(qb[q-1+n_work])
-					qz.rz(-np.pi/2,qb[q-1+n_work])
+					qz.rz(np.pi/2,qb[q-1+n_work])
 					qz.h(qb[q+n_work])
-					qz.rz(-np.pi/2,qb[q+n_work])
+					qz.rz(np.pi/2,qb[q+n_work])
 					###########
 					#THIRD TERM:
 					qz.h(qb[p-1+n_work])
-					qz.rz(np.pi/2,qb[p+n_work])
+					qz.rz(-np.pi/2,qb[p+n_work])
 					qz.h(qb[p+n_work])
 					qz.h(qb[q-1+n_work])
-					qz.rz(np.pi/2,qb[q+n_work])
+					qz.rz(-np.pi/2,qb[q+n_work])
 					qz.h(qb[q+n_work])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[p+n_work],qb[n_qubits-1])
@@ -168,16 +169,16 @@ class QCPairing:
 					qz.cx(qb[q+n_work],qb[n_qubits-1])
 					qz.h(qb[p-1+n_work])
 					qz.h(qb[p+n_work])
-					qz.rz(-np.pi/2,qb[p+n_work])
+					qz.rz(np.pi/2,qb[p+n_work])
 					qz.h(qb[q-1+n_work])
 					qz.h(qb[q+n_work])
-					qz.rz(-np.pi/2,qb[q+n_work])
+					qz.rz(np.pi/2,qb[q+n_work])
 					###########
 					#FOURTH TERM
 					qz.h(qb[p-1+n_work])
-					qz.rz(np.pi/2,qb[p+n_work])
+					qz.rz(-np.pi/2,qb[p+n_work])
 					qz.h(qb[p+n_work])
-					qz.rz(np.pi/2,qb[q-1+n_work])
+					qz.rz(-np.pi/2,qb[q-1+n_work])
 					qz.h(qb[q-1+n_work])
 					qz.h(qb[q+n_work])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
@@ -191,17 +192,17 @@ class QCPairing:
 					qz.cx(qb[q+n_work],qb[n_qubits-1])
 					qz.h(qb[p-1+n_work])
 					qz.h(qb[p+n_work])
-					qz.rz(-np.pi/2,qb[p+n_work])
+					qz.rz(np.pi/2,qb[p+n_work])
 					qz.h(qb[q-1+n_work])
-					qz.rz(-np.pi/2,qb[q-1+n_work])
+					qz.rz(np.pi/2,qb[q-1+n_work])
 					qz.h(qb[q+n_work])
 					###########
 					#FIFTH TERM
-					qz.rz(np.pi/2,qb[p-1+n_work])
+					qz.rz(-np.pi/2,qb[p-1+n_work])
 					qz.h(qb[p-1+n_work])
 					qz.h(qb[p+n_work])
 					qz.h(qb[q-1+n_work])
-					qz.rz(np.pi/2,qb[q+n_work])
+					qz.rz(-np.pi/2,qb[q+n_work])
 					qz.h(qb[q+n_work])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[p+n_work],qb[n_qubits-1])
@@ -213,17 +214,17 @@ class QCPairing:
 					qz.cx(qb[q-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[q+n_work],qb[n_qubits-1])
 					qz.h(qb[p-1+n_work])
-					qz.rz(-np.pi/2,qb[p-1+n_work])
+					qz.rz(np.pi/2,qb[p-1+n_work])
 					qz.h(qb[p+n_work])
 					qz.h(qb[q-1+n_work])
 					qz.h(qb[q+n_work])
-					qz.rz(-np.pi/2,qb[q+n_work])
+					qz.rz(np.pi/2,qb[q+n_work])
 					##########
 					#SIXTH TERM:
-					qz.rz(np.pi/2,qb[p-1+n_work])
+					qz.rz(-np.pi/2,qb[p-1+n_work])
 					qz.h(qb[p-1+n_work])
 					qz.h(qb[p+n_work])
-					qz.rz(np.pi/2,qb[q-1+n_work])
+					qz.rz(-np.pi/2,qb[q-1+n_work])
 					qz.h(qb[q-1+n_work])
 					qz.h(qb[q+n_work])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
@@ -236,16 +237,16 @@ class QCPairing:
 					qz.cx(qb[q-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[q+n_work],qb[n_qubits-1])
 					qz.h(qb[p-1+n_work])
-					qz.rz(-np.pi/2,qb[p-1+n_work])
+					qz.rz(np.pi/2,qb[p-1+n_work])
 					qz.h(qb[p+n_work])
 					qz.h(qb[q-1+n_work])
-					qz.rz(-np.pi/2,qb[q-1+n_work])
+					qz.rz(np.pi/2,qb[q-1+n_work])
 					qz.h(qb[q+n_work])
 					#######################
 					#SEVENTH TERM
-					qz.rz(np.pi/2,qb[p-1+n_work])
+					qz.rz(-np.pi/2,qb[p-1+n_work])
 					qz.h(qb[p-1+n_work])
-					qz.rz(np.pi/2,qb[p+n_work])
+					qz.rz(-np.pi/2,qb[p+n_work])
 					qz.h(qb[p+n_work])
 					qz.h(qb[q-1+n_work])
 					qz.h(qb[q+n_work])
@@ -259,21 +260,21 @@ class QCPairing:
 					qz.cx(qb[q-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[q+n_work],qb[n_qubits-1])
 					qz.h(qb[p-1+n_work])
-					qz.rz(-np.pi/2,qb[p-1+n_work])
+					qz.rz(np.pi/2,qb[p-1+n_work])
 					qz.h(qb[p+n_work])
-					qz.rz(-np.pi/2,qb[p+n_work])
+					qz.rz(np.pi/2,qb[p+n_work])
 					qz.h(qb[q-1+n_work])
 					
 					qz.h(qb[q+n_work])
 					##############
 					#EIGTH TERM:
-					qz.rz(np.pi/2,qb[p-1+n_work])
+					qz.rz(-np.pi/2,qb[p-1+n_work])
 					qz.h(qb[p-1+n_work])
-					qz.rz(np.pi/2,qb[p+n_work])
+					qz.rz(-np.pi/2,qb[p+n_work])
 					qz.h(qb[p+n_work])
-					qz.rz(np.pi/2,qb[q-1+n_work])
+					qz.rz(-np.pi/2,qb[q-1+n_work])
 					qz.h(qb[q-1+n_work])
-					qz.rz(np.pi/2,qb[q+n_work])
+					qz.rz(-np.pi/2,qb[q+n_work])
 					qz.h(qb[q+n_work])
 					qz.cx(qb[p-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[p+n_work],qb[n_qubits-1])
@@ -285,13 +286,13 @@ class QCPairing:
 					qz.cx(qb[q-1+n_work],qb[n_qubits-1])
 					qz.cx(qb[q+n_work],qb[n_qubits-1])
 					qz.h(qb[p-1+n_work])
-					qz.rz(-np.pi/2,qb[p-1+n_work])
+					qz.rz(np.pi/2,qb[p-1+n_work])
 					qz.h(qb[p+n_work])
-					qz.rz(-np.pi/2,qb[p+n_work])
+					qz.rz(np.pi/2,qb[p+n_work])
 					qz.h(qb[q-1+n_work])
-					qz.rz(-np.pi/2,qb[q-1+n_work])
+					qz.rz(np.pi/2,qb[q-1+n_work])
 					qz.h(qb[q+n_work])
-					qz.rz(-np.pi/2,qb[q+n_work])
+					qz.rz(np.pi/2,qb[q+n_work])
 		self.qb = qb
 		self.cb = cb
 		self.qz = qz
@@ -383,7 +384,7 @@ class QCPairing:
 
 		qz,qb,cb = self.solve(t)
 		self.qz.measure(self.qb,self.cb)
-		job = qk.execute(self.qz, backend = qk.Aer.get_backend('qasm_simulator'), shots=shots)
+		job = qk.execute(self.qz, backend = qk.Aer.get_backend('qasm_simulator'), shots=shots,noise_model=self.noise_model)
 		result = job.result()
 		result = result.get_counts(self.qz)
 		measurements = []
@@ -456,4 +457,28 @@ class QCPairing:
 				varEigs.append(var)
 				xi_list = []
 		return(eigenvalues,varEigs)
+
+	def sort_measurements(self,measurements):
+		"""
+		Sorts measurements so they can be plotted. 
+		Inputs:
+			measurements (array) - returned from run_simulation
+		"""
+		x = measurements[:,1]
+		y = measurements[:,2]
+		idx = np.argsort(x)
+		x = x[idx]
+		y = y[idx]
+		eigdict = {}
+		for xi in x:
+			eigdict[xi] = 0
+		for xi, yi in zip(x,y):
+			eigdict[xi] += int(yi)
+
+		x = np.array(list(eigdict.keys())).astype(np.float)
+		idx = np.argsort(x)
+		y = np.array(list(eigdict.values())).astype(np.int)
+		x = x[idx]
+		y = y[idx]
+		return(x,y)
 
