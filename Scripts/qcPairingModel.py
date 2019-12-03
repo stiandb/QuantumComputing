@@ -10,7 +10,6 @@ class QCPairing:
 	def __init__(self,n_work,n_simulation,delta=1,g=1,dt=0.005,Emax=500,noise_model=None):
 		"""
 		Input:
-			input:
 				n_work (int) - Number of work-qubits
 				n_simulation (int) - Number of simulation qubits
 				delta (float) - parameter in the one-body hamiltonian
